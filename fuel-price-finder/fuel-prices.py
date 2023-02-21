@@ -1,7 +1,7 @@
 # %%
 from bs4 import BeautifulSoup
 import requests
-import sys
+import clipboard
 
 # %%
 url = "https://projectzerothree.info/prices.php"
@@ -25,4 +25,7 @@ for i in range(0, len(best_prices)):
 ## Available fuelTypes are
 ## E10, U91, U98, Diesel, LPG
 
-print(prices.get("U91")[1])
+cheapest_fuel = prices.get("U91")[1]
+
+clipboard.copy(cheapest_fuel)
+print(cheapest_fuel)
