@@ -20,7 +20,7 @@ class FuelPrice:
 
     @property
     def location(self):
-        return f"{self.suburb}, {self.state} {self.postcode}"
+        return f"{self.suburb}, {self.state} {self.postcode}, Australia"
 
     @property
     def gps(self):
