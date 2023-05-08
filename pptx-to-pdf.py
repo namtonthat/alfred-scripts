@@ -1,6 +1,5 @@
 import os
-
-# import sys
+import logging
 import subprocess
 
 # requires libreoffice to be installed
@@ -10,35 +9,28 @@ import subprocess
 path_to_office = "/Applications/LibreOffice.app/Contents/MacOS/soffice"
 
 # path with files to convert
-source_folder = "/Users/namtonthat/Library/CloudStorage/GoogleDrive-n.nam.tonthat@gmail.com/My Drive/Hobbies/Mandarin"
-# SOURCE_FOLDER = "/Users/ntonthat/Downloads/HSK3\ 1-10/"
+# source_folder = "/Users/namtonthat/Library/CloudStorage/GoogleDrive-n.nam.tonthat@gmail.com/My Drive/Hobbies/Mandarin"
 SOURCE_FOLDER = os.getcwd()
-OUTPUT_FOLDER = "HSK3"
 
-# changing directory to source
-# os.chdir(source_folder)
+def move_files_into_subfolder(file_name, folder_name):
+    logging.info('moving file: %s to %s', file_name, folder_name)
+    os.makedirs(f"{SOURCE_FOLDER}/{folder_name}", exist_ok=True)
+    mv_command = f'mv {file_name} "{SOURCE_FOLDER}/{folder_name}/"'
+    subprocess.run(mv_command, shell=True)
+    return 
 
-# file_name = sys.argv[1]
-# file_name = "L15"
-files = os.listdir()
-pptx = [file for file in files if file.endswith(".pptx")]
 
-for pptx_file in pptx:
-    file_name = pptx_file.split(".pptx")[0]
-    file_name = file_name.replace(" ", "\ ")
-    # print(file_name)
-    # assign and running the command of converting files through LibreOffice
-    command = f"{path_to_office}  --headless --convert-to pdf --outdir . {file_name}"
-    subprocess.run(command, shell=True)
+if __name__ == "__main__":
+    files = os.listdir()
+    pptx = [file for file in files if file.endswith(".pptx")]
 
-    # move files after completed
-    # command to create folder if not exist
-    # os.makedirs(f"{source_folder}/PDF", exist_ok=True)
-    # mv_pdf_command = f'mv {file_name}.pdf "{source_folder}/PDF/"'
-    # subprocess.run(mv_pdf_command, shell=True)
+    for pptx_file in pptx:
+        pptx_file = pptx_file.replace(" ", "\ ")
+        file_name = pptx_file.split(".pptx")[0]
+        
+        # assign and running the command of converting files through LibreOffice
+        command = f"{path_to_office}  --headless --convert-to pdf --outdir . {pptx_file}"
+        if subprocess.run(command, shell=True): 
+            move_files_into_subfolder(file_name, "PDF")
+            move_files_into_subfolder(file_name, "PPTX")
 
-    # os.makedirs(f"{source_folder}/PPTX", exist_ok=True)
-    # mv_pptx_command = f'mv {file_name}.pptx "{source_folder}/PPTX/"'
-    # subprocess.run(mv_pptx_command, shell=True)
-
-    print("Converted")
