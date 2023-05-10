@@ -1,44 +1,47 @@
+"""
+This script converts PowerPoint (.pptx) files in a specified directory to PDF format using LibreOffice.
+After converting, the script moves the PDF files to a 'PDF' subdirectory and the original PPTX files to a 'PPTX' subdirectory within the source folder.
+Requires LibreOffice to be installed on the system.
+brew install --cask libreoffice
+"""
+
 import os
-
-# import sys
 import subprocess
+import logging
 
-# requires libreoffice to be installed
-# use brew install --cask libreoffice
+# Configure logging
+logging.basicConfig(level=logging.INFO)
 
-# path to the engine
+# Path to the LibreOffice engine
 path_to_office = "/Applications/LibreOffice.app/Contents/MacOS/soffice"
 
-# path with files to convert
+# Source folder with files to convert
 source_folder = "/Users/namtonthat/Library/CloudStorage/GoogleDrive-n.nam.tonthat@gmail.com/My Drive/Hobbies/Mandarin"
-# SOURCE_FOLDER = "/Users/ntonthat/Downloads/HSK3\ 1-10/"
-SOURCE_FOLDER = os.getcwd()
-OUTPUT_FOLDER = "HSK3"
 
-# changing directory to source
-# os.chdir(source_folder)
+# Get the current working directory
+source_folder = os.getcwd()
 
-# file_name = sys.argv[1]
-# file_name = "L15"
-files = os.listdir()
-pptx = [file for file in files if file.endswith(".pptx")]
+# Create output folder if it does not exist
+os.makedirs(os.path.join(source_folder, "PDF"), exist_ok=True)
+os.makedirs(os.path.join(source_folder, "PPTX"), exist_ok=True)
 
-for pptx_file in pptx:
-    file_name = pptx_file.split(".pptx")[0]
-    file_name = file_name.replace(" ", "\ ")
-    # print(file_name)
-    # assign and running the command of converting files through LibreOffice
-    command = f"{path_to_office}  --headless --convert-to pdf --outdir . {file_name}"
+# Get a list of all .pptx files in the source folder
+pptx_files = [file for file in os.listdir(source_folder) if file.endswith(".pptx")]
+
+for pptx_file in pptx_files:
+    pttx_file = pptx_file.replace(" ", "\ ")
+    file_name = os.path.splitext(pptx_file)[0]
+
+    # Convert PPTX to PDF using LibreOffice
+    command = f"{path_to_office} --headless --convert-to pdf --outdir {source_folder} {os.path.join(source_folder, pptx_file)}"
     subprocess.run(command, shell=True)
+    logging.info(f"Converted {pptx_file} to PDF")
 
-    # move files after completed
-    # command to create folder if not exist
-    # os.makedirs(f"{source_folder}/PDF", exist_ok=True)
-    # mv_pdf_command = f'mv {file_name}.pdf "{source_folder}/PDF/"'
-    # subprocess.run(mv_pdf_command, shell=True)
+    # Move the PDF and PPTX files to their respective folders
+    mv_pdf_command = f'mv {file_name}.pdf "{source_folder}/PDF/"'
+    subprocess.run(mv_pdf_command, shell=True)
 
-    # os.makedirs(f"{source_folder}/PPTX", exist_ok=True)
-    # mv_pptx_command = f'mv {file_name}.pptx "{source_folder}/PPTX/"'
-    # subprocess.run(mv_pptx_command, shell=True)
+    mv_pptx_command = f'mv {file_name}.pptx "{source_folder}/PPTX/"'
+    subprocess.run(mv_pptx_command, shell=True)
 
-    print("Converted")
+    logging.info(f"Moved {file_name}.pdf and {pptx_file} to respective folders")
