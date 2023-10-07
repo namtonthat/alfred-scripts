@@ -1,7 +1,21 @@
-import requests
-import json
-import subprocess
 from dataclasses import dataclass
+import json
+import logging
+import pexpect
+import re
+import requests
+import getpass
+
+
+# Configure logging for console output
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+
+logging.info("Script started.")
+
+
+def remove_ansi_codes(s):
+    ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+    return ansi_escape.sub("", s)
 
 
 @dataclass
@@ -37,33 +51,87 @@ def get_cheapest_fuel_location():
     for fuel_type_best_price in best_prices:
         single_fuel_price = FuelPrice(**fuel_type_best_price)
         if selected_fuel_type == single_fuel_price.type:
+            logging.info(f"Cheapest fuel price {single_fuel_price.location}")
             return single_fuel_price.gps
 
 
-def get_rsd_connection_info():
-    command = ["sudo", "python3", "-m", "pymobiledevice3", "remote", "start-quic-tunnel"]
-    result = subprocess.run(command, capture_output=True, text=True)
-    output = result.stdout
+def start_tunnel_and_wait():
+    logging.info("Starting the rsd connection command...")
 
-    prefix = "Use the follow connection option:"
-    line = [line for line in output.splitlines() if line.startswith(prefix)][0]
-    _, rsd_address, rsd_port = line.replace(prefix, "").split()
+    command = "sudo -E poetry run python3 -m pymobiledevice3 remote start-quic-tunnel"
+    logging.info("About to run command: %s", command)
 
-    return rsd_address, rsd_port
+    try:
+        # Start the command with pexpect
+        child = pexpect.spawn(command, timeout=10)
+
+        # Wait for the password prompt and send the password
+        child.expect_exact("Password:")
+        child.sendline(getpass.getpass("Enter sudo password: "))
+
+        index = child.expect(["Use the follow connection option:", pexpect.TIMEOUT, pexpect.EOF])
+
+        if index == 0:
+            logging.info("Command output: %s", child.before.decode())
+
+            output = child.before.decode()
+            rsd_address_match = re.search(r"RSD Address: (\S+)", output)
+            rsd_port_match = re.search(r"RSD Port: (\S+)", output)
+
+            if rsd_address_match and rsd_port_match:
+                rsd_address = remove_ansi_codes(rsd_address_match.group(1))
+                rsd_port = remove_ansi_codes(rsd_port_match.group(1))
+                logging.info("Extracted RSD Address: %s, RSD Port: %s", rsd_address, rsd_port)
+
+                return child, (rsd_address, rsd_port)
+
+    except pexpect.ExceptionPexpect as e:
+        logging.error("A pexpect exception occurred: %s", str(e))
+        return None, (None, None)
+    except Exception as e:
+        logging.error("An unexpected exception occurred: %s", str(e))
+        return None, (None, None)
 
 
-def simulate_location(gps_coords, rsd_info):
+def print_simulate_command(gps_coords, rsd_info):
     rsd_address, rsd_port = rsd_info
+    simulate_command = [
+        "pymobiledevice3",
+        "developer",
+        "dvt",
+        "simulate-location",
+        "set",
+        "--rsd",
+        rsd_address,
+        str(rsd_port),  # Make sure the port is converted to string
+        "--",
+        str(gps_coords[0]),
+        str(gps_coords[1]),
+    ]
 
-    simulate_command = ["pymobiledevice3", "developer", "dvt", "simulate-location", "set", "--rsd", rsd_address, rsd_port, "--", str(gps_coords[0]), str(gps_coords[1])]
+    cmd_str = " ".join(simulate_command)
+    logging.info("Copy and execute the following command manually in another window:")
+    print(cmd_str)  # print the command to the terminal for user to copy
 
-    subprocess.run(simulate_command)
+
+def prompt_to_close_terminal():
+    input("Once you have executed the command and are done, press Enter to close the tunnel and exit...")
 
 
 def main():
     cheapest_fuel_location = get_cheapest_fuel_location()
-    rsd_info = get_rsd_connection_info()
-    simulate_location(cheapest_fuel_location, rsd_info)
+
+    tunnel_process, rsd_info = start_tunnel_and_wait()
+    if not rsd_info or not tunnel_process:
+        logging.error("Failed to retrieve RSD info. Exiting.")
+        return
+
+    try:
+        print_simulate_command(cheapest_fuel_location, rsd_info)
+        prompt_to_close_terminal()
+    finally:
+        logging.info("Closing the tunnel...")
+        tunnel_process.terminate(force=True)
 
 
 if __name__ == "__main__":
