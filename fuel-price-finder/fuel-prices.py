@@ -1,10 +1,12 @@
 from dataclasses import dataclass
 import json
+import getpass
 import logging
 import pexpect
+import platform
 import re
 import requests
-import getpass
+import subprocess
 
 
 # Configure logging for console output
@@ -112,6 +114,15 @@ def print_simulate_command(gps_coords, rsd_info):
     cmd_str = " ".join(simulate_command)
     logging.info("Copy and execute the following command manually in another window:")
     print(cmd_str)  # print the command to the terminal for user to copy
+    return cmd_str
+
+
+def copy_simulate_command(cmd: str):
+    # If on a macOS, copy the cmd_str to the clipboard
+    if platform.system() == "Darwin":  # macOS is identified as 'Darwin' with platform.system()
+        process = subprocess.Popen("pbcopy", universal_newlines=True, stdin=subprocess.PIPE)
+        process.communicate(cmd)
+        logging.info("The command has been copied to your clipboard.")
 
 
 def prompt_to_close_terminal():
@@ -127,7 +138,12 @@ def main():
         return
 
     try:
-        print_simulate_command(cheapest_fuel_location, rsd_info)
+        cmd = print_simulate_command(cheapest_fuel_location, rsd_info)
+
+        # If on a macOS, copy the cmd_str to the clipboard
+        copy_simulate_command(cmd)
+
+        # Prompt the user to close the terminal
         prompt_to_close_terminal()
     finally:
         logging.info("Closing the tunnel...")
