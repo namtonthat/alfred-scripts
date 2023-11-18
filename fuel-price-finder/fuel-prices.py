@@ -10,7 +10,9 @@ import subprocess
 
 
 # Configure logging for console output
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 logging.info("Script started.")
 
@@ -71,7 +73,9 @@ def start_tunnel_and_wait():
         child.expect_exact("Password:")
         child.sendline(getpass.getpass("Enter sudo password: "))
 
-        index = child.expect(["Use the follow connection option:", pexpect.TIMEOUT, pexpect.EOF])
+        index = child.expect(
+            ["Use the follow connection option:", pexpect.TIMEOUT, pexpect.EOF]
+        )
 
         if index == 0:
             logging.info("Command output: %s", child.before.decode())
@@ -83,7 +87,9 @@ def start_tunnel_and_wait():
             if rsd_address_match and rsd_port_match:
                 rsd_address = remove_ansi_codes(rsd_address_match.group(1))
                 rsd_port = remove_ansi_codes(rsd_port_match.group(1))
-                logging.info("Extracted RSD Address: %s, RSD Port: %s", rsd_address, rsd_port)
+                logging.info(
+                    "Extracted RSD Address: %s, RSD Port: %s", rsd_address, rsd_port
+                )
 
                 return child, (rsd_address, rsd_port)
 
@@ -119,20 +125,27 @@ def print_simulate_command(gps_coords, rsd_info):
 
 def copy_simulate_command(cmd: str):
     # If on a macOS, copy the cmd_str to the clipboard
-    if platform.system() == "Darwin":  # macOS is identified as 'Darwin' with platform.system()
-        process = subprocess.Popen("pbcopy", universal_newlines=True, stdin=subprocess.PIPE)
+    if (
+        platform.system() == "Darwin"
+    ):  # macOS is identified as 'Darwin' with platform.system()
+        process = subprocess.Popen(
+            "pbcopy", universal_newlines=True, stdin=subprocess.PIPE
+        )
         process.communicate(cmd)
         logging.info("The command has been copied to your clipboard.")
 
 
 def prompt_to_close_terminal():
-    input("Once you have executed the command and are done, press Enter to close the tunnel and exit...")
+    input(
+        "Once you have executed the command and are done, press Enter to close the tunnel and exit..."
+    )
 
 
 def main():
     cheapest_fuel_location = get_cheapest_fuel_location()
 
     tunnel_process, rsd_info = start_tunnel_and_wait()
+
     if not rsd_info or not tunnel_process:
         logging.error("Failed to retrieve RSD info. Exiting.")
         return
