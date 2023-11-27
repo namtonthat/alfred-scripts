@@ -1,4 +1,2 @@
-poetry shell
-poetry install --no-root
-
+#!/bin/bash
 poetry run python fuel-prices.py

@@ -10,9 +10,7 @@ import subprocess
 
 
 # Configure logging for console output
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 logging.info("Script started.")
 
@@ -73,9 +71,7 @@ def start_tunnel_and_wait():
         child.expect_exact("Password:")
         child.sendline(getpass.getpass("Enter sudo password: "))
 
-        index = child.expect(
-            ["Use the follow connection option:", pexpect.TIMEOUT, pexpect.EOF]
-        )
+        index = child.expect(["Use the follow connection option:", pexpect.TIMEOUT, pexpect.EOF])
 
         if index == 0:
             logging.info("Command output: %s", child.before.decode())
@@ -87,18 +83,18 @@ def start_tunnel_and_wait():
             if rsd_address_match and rsd_port_match:
                 rsd_address = remove_ansi_codes(rsd_address_match.group(1))
                 rsd_port = remove_ansi_codes(rsd_port_match.group(1))
-                logging.info(
-                    "Extracted RSD Address: %s, RSD Port: %s", rsd_address, rsd_port
-                )
-
+                logging.info("Extracted RSD Address: %s, RSD Port: %s", rsd_address, rsd_port)
                 return child, (rsd_address, rsd_port)
 
-    except pexpect.ExceptionPexpect as e:
+            logging.error("Failed to extract RSD Address and Port")
+
+    except pexpect.exceptions.ExceptionPexpect as e:
         logging.error("A pexpect exception occurred: %s", str(e))
-        return None, (None, None)
+
     except Exception as e:
         logging.error("An unexpected exception occurred: %s", str(e))
-        return None, (None, None)
+
+    return child, (None, None)
 
 
 def print_simulate_command(gps_coords, rsd_info):
@@ -117,28 +113,28 @@ def print_simulate_command(gps_coords, rsd_info):
         str(gps_coords[1]),
     ]
 
+    current_dir = subprocess.run(["pwd"], capture_output=True, text=True).stdout.strip()
+    logging.info("Current directory: %s", current_dir)
+
     cmd_str = " ".join(simulate_command)
+    cd_str = f"cd {current_dir}"
     logging.info("Copy and execute the following command manually in another window:")
-    print(cmd_str)  # print the command to the terminal for user to copy
-    return cmd_str
+    full_cmd = "\n".join([cd_str, cmd_str])
+    print(full_cmd)  # print the command to the terminal for user to copy
+    return full_cmd
 
 
 def copy_simulate_command(cmd: str):
     # If on a macOS, copy the cmd_str to the clipboard
-    if (
-        platform.system() == "Darwin"
-    ):  # macOS is identified as 'Darwin' with platform.system()
-        process = subprocess.Popen(
-            "pbcopy", universal_newlines=True, stdin=subprocess.PIPE
-        )
+    if platform.system() == "Darwin":  # macOS is identified as 'Darwin' with platform.system()
+        process = subprocess.Popen("pbcopy", universal_newlines=True, stdin=subprocess.PIPE)
         process.communicate(cmd)
         logging.info("The command has been copied to your clipboard.")
 
 
 def prompt_to_close_terminal():
-    input(
-        "Once you have executed the command and are done, press Enter to close the tunnel and exit..."
-    )
+    input("Open a new terminal window and paste the command. Press Enter to continue...")
+    input("Once you have executed the command and are done, press Enter to close the tunnel and exit...")
 
 
 def main():
